@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "es2020",
+    "module": "commonjs",
+    "lib": [
+      "es2020"
+    ],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./dist"
+  },
+  "include": [
+    "*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "plugins": [
+    {
+      "transform": "threadly/transformer-plugin",
+      "options": {
+        "outputDir": "./dist/workers",
+        "baseDir": ".",
+        "target": "es2020",
+        "module": "commonjs",
+        "sourceMap": false
+      }
+    }
+  ]
+}
