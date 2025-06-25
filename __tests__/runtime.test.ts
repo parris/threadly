@@ -1,15 +1,27 @@
 import { ThreadlyRuntime } from "../src/runtime";
+import * as path from "path";
 
 describe("ThreadlyRuntime", () => {
   let runtime: ThreadlyRuntime;
+  const testWorkerPath = path.join(__dirname, "fixtures", "test-worker.js");
 
   beforeEach(() => {
     runtime = new ThreadlyRuntime("/test/base/dir");
   });
 
+  afterEach(async () => {
+    // Clean up workers after each test
+    await runtime.terminateAll();
+  });
+
+  afterAll(async () => {
+    // Final cleanup
+    await runtime.terminateAll();
+  });
+
   describe("createWorker", () => {
     it("should create a basic worker", async () => {
-      const worker = await runtime.createWorker("/path/to/worker.js");
+      const worker = await runtime.createWorker(testWorkerPath);
 
       expect(worker).toBeDefined();
       expect(typeof worker.postMessage).toBe("function");
@@ -17,7 +29,7 @@ describe("ThreadlyRuntime", () => {
     });
 
     it("should create a worker with options", async () => {
-      const worker = await runtime.createWorker("/path/to/worker.js", {
+      const worker = await runtime.createWorker(testWorkerPath, {
         shared: true,
         transferable: true,
       });
@@ -28,7 +40,7 @@ describe("ThreadlyRuntime", () => {
 
   describe("createWorkerPool", () => {
     it("should create a worker pool with specified size", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 4);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 4);
 
       expect(pool).toBeDefined();
       expect(pool.maxSize).toBe(4);
@@ -38,7 +50,7 @@ describe("ThreadlyRuntime", () => {
     });
 
     it("should create a worker pool with options", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 2, {
+      const pool = await runtime.createWorkerPool(testWorkerPath, 2, {
         shared: true,
       });
 
@@ -49,7 +61,7 @@ describe("ThreadlyRuntime", () => {
 
   describe("getWorkerFromPool", () => {
     it("should get an available worker from pool", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 2);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 2);
 
       const worker = await runtime.getWorkerFromPool(pool);
 
@@ -59,7 +71,7 @@ describe("ThreadlyRuntime", () => {
     });
 
     it("should wait for worker to become available when pool is empty", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 1);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 1);
 
       // Get the only worker
       const worker1 = await runtime.getWorkerFromPool(pool);
@@ -79,7 +91,7 @@ describe("ThreadlyRuntime", () => {
 
   describe("returnWorkerToPool", () => {
     it("should return worker to pool", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 2);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 2);
 
       const worker = await runtime.getWorkerFromPool(pool);
       expect(pool.available).toHaveLength(1);
@@ -91,7 +103,7 @@ describe("ThreadlyRuntime", () => {
     });
 
     it("should handle returning worker that is not in busy list", async () => {
-      const pool = await runtime.createWorkerPool("/path/to/worker.js", 1);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 1);
 
       const worker = pool.workers[0];
       runtime.returnWorkerToPool(pool, worker);
@@ -104,7 +116,7 @@ describe("ThreadlyRuntime", () => {
 
   describe("createSharedWorker", () => {
     it("should create a shared worker", async () => {
-      const worker = await runtime.createSharedWorker("/path/to/worker.js", {
+      const worker = await runtime.createSharedWorker(testWorkerPath, {
         shared: true,
       });
 
@@ -114,7 +126,7 @@ describe("ThreadlyRuntime", () => {
 
   describe("executeInWorker", () => {
     it("should execute function in worker", async () => {
-      const worker = await runtime.createWorker("/path/to/worker.js");
+      const worker = await runtime.createWorker(testWorkerPath);
 
       const result = await runtime.executeInWorker(
         worker,
@@ -126,14 +138,16 @@ describe("ThreadlyRuntime", () => {
     });
 
     it("should handle worker errors", async () => {
-      const worker = await runtime.createWorker("/path/to/worker.js");
+      const worker = await runtime.createWorker(testWorkerPath);
 
       // Mock worker to return error
       const originalPostMessage = worker.postMessage;
       worker.postMessage = (data: any) => {
         setTimeout(() => {
           if (worker.onmessage) {
-            worker.onmessage({ data: { error: "Test error" } });
+            worker.onmessage(
+              new MessageEvent("message", { data: { error: "Test error" } })
+            );
           }
         }, 10);
       };
@@ -149,9 +163,9 @@ describe("ThreadlyRuntime", () => {
 
   describe("terminateAll", () => {
     it("should terminate all workers", async () => {
-      const worker1 = await runtime.createWorker("/path/to/worker1.js");
-      const worker2 = await runtime.createWorker("/path/to/worker2.js");
-      const pool = await runtime.createWorkerPool("/path/to/worker3.js", 2);
+      const worker1 = await runtime.createWorker(testWorkerPath);
+      const worker2 = await runtime.createWorker(testWorkerPath);
+      const pool = await runtime.createWorkerPool(testWorkerPath, 2);
 
       const context = runtime.getContext();
       context.workers.set("worker1", worker1);

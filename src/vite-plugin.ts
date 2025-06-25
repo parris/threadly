@@ -79,7 +79,14 @@ export function threadly(options: ThreadlyViteOptions = {}): Plugin {
 
           // Write worker files
           for (const config of result.workerConfigs) {
-            fs.writeFileSync(config.filePath, config.sourceCode);
+            try {
+              fs.writeFileSync(config.filePath, config.sourceCode);
+            } catch (writeError) {
+              console.error(
+                `Failed to write worker file ${config.filePath}:`,
+                writeError
+              );
+            }
           }
         }
 
@@ -90,7 +97,11 @@ export function threadly(options: ThreadlyViteOptions = {}): Plugin {
         };
       } catch (error) {
         console.error(`Threadly transform error for ${id}:`, error);
-        return null;
+        // Return original code instead of failing completely
+        return {
+          code,
+          map: null,
+        };
       }
     },
 

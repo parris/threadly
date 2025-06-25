@@ -5,6 +5,68 @@ import {
   RuntimeOptions,
 } from "./types";
 
+const isNode =
+  typeof process !== "undefined" &&
+  process.versions != null &&
+  process.versions.node != null;
+
+// Node.js SharedWorker polyfill
+let NodeSharedWorker: any = null;
+let sharedWorkers: Map<string, { worker: any; ports: Set<any> }> = new Map();
+if (isNode) {
+  const { Worker, MessageChannel } = require("worker_threads");
+  // Map to ensure singleton per worker script
+  NodeSharedWorker = class {
+    public port: any;
+    private shared: any;
+    constructor(workerPath: string, options: any) {
+      let shared = sharedWorkers.get(workerPath);
+      if (!shared) {
+        const worker = new Worker(workerPath, { eval: false });
+        shared = { worker, ports: new Set() };
+        sharedWorkers.set(workerPath, shared);
+        // Broadcast from worker to all ports
+        worker.on("message", (data: any) => {
+          for (const port of shared!.ports) {
+            port.postMessage(data);
+          }
+        });
+      }
+      this.shared = shared;
+      // Each client gets a MessageChannel port
+      const { port1, port2 } = new MessageChannel();
+      shared.ports.add(port1);
+      // Forward messages from port to worker
+      port1.on("message", (data: any) => {
+        shared!.worker.postMessage(data);
+      });
+      // Remove port on close
+      port1.on("close", () => {
+        shared!.ports.delete(port1);
+        // If no more ports, terminate the worker
+        if (shared!.ports.size === 0) {
+          shared!.worker.terminate();
+          sharedWorkers.delete(workerPath);
+        }
+      });
+      this.port = port1;
+    }
+  };
+}
+
+// Global cleanup function for shared workers
+function cleanupSharedWorkers() {
+  if (isNode && sharedWorkers) {
+    for (const [path, shared] of sharedWorkers) {
+      for (const port of shared.ports) {
+        port.close();
+      }
+      shared.worker.terminate();
+    }
+    sharedWorkers.clear();
+  }
+}
+
 /**
  * Runtime utilities for managing Threadly workers
  */
@@ -26,24 +88,81 @@ export class ThreadlyRuntime {
     workerPath: string,
     options: RuntimeOptions = {}
   ): Promise<WorkerInstance> {
-    // In a real implementation, this would create an actual Worker
-    // For now, we'll create a mock worker that simulates the behavior
-    const worker = {
-      postMessage: (data: any) => {
-        // Simulate worker processing
-        setTimeout(() => {
-          if (worker.onmessage) {
-            worker.onmessage({ data: this.processMessage(data) });
+    let worker: any;
+    if (isNode) {
+      // Use worker_threads in Node.js
+      const { Worker } = await import("worker_threads");
+      worker = new Worker(workerPath, {
+        eval: false,
+      });
+      // Polyfill browser-like API
+      const messageListeners: Array<(event: MessageEvent) => void> = [];
+      const errorListeners: Array<(event: ErrorEvent) => void> = [];
+      worker.on("message", (data: any) => {
+        messageListeners.forEach((fn) => fn({ data } as MessageEvent));
+      });
+      worker.on("error", (err: any) => {
+        errorListeners.forEach((fn) => fn(err as ErrorEvent));
+      });
+      return {
+        postMessage: (data: any) => worker.postMessage(data),
+        terminate: () => {
+          // Close all ports first
+          for (const port of messageListeners) {
+            // Remove listeners
           }
-        }, 10);
-      },
-      onmessage: null as any,
-      terminate: () => {
-        // Cleanup
-      },
-    };
-
-    return worker;
+          messageListeners.length = 0;
+          errorListeners.length = 0;
+          // Terminate the worker
+          worker.terminate();
+        },
+        get onmessage() {
+          return messageListeners[0] || null;
+        },
+        set onmessage(fn: ((event: MessageEvent) => void) | null) {
+          messageListeners.length = 0;
+          if (fn) messageListeners.push(fn);
+        },
+        get onerror() {
+          return errorListeners[0] || null;
+        },
+        set onerror(fn: ((event: ErrorEvent) => void) | null) {
+          errorListeners.length = 0;
+          if (fn) errorListeners.push(fn);
+        },
+      };
+    } else {
+      // Browser Worker
+      worker = new Worker(workerPath, {
+        type: "module",
+        name: `threadly-worker-${Date.now()}`,
+      });
+      const workerInstance: WorkerInstance = {
+        postMessage: (data: any, transfer?: Transferable[]) => {
+          if (transfer) {
+            worker.postMessage(data, transfer);
+          } else {
+            worker.postMessage(data);
+          }
+        },
+        onmessage: null,
+        onerror: null,
+        terminate: () => {
+          worker.terminate();
+        },
+      };
+      worker.onmessage = (event: MessageEvent) => {
+        if (workerInstance.onmessage) {
+          workerInstance.onmessage(event);
+        }
+      };
+      worker.onerror = (error: ErrorEvent) => {
+        if (workerInstance.onerror) {
+          workerInstance.onerror(error);
+        }
+      };
+      return workerInstance;
+    }
   }
 
   /**
@@ -118,15 +237,64 @@ export class ThreadlyRuntime {
     workerPath: string,
     options: RuntimeOptions = {}
   ): Promise<WorkerInstance> {
-    const worker = await this.createWorker(workerPath, options);
-
-    // Add shared memory support
-    if (options.shared) {
-      // In a real implementation, this would set up SharedArrayBuffer
-      // For now, we'll just return the regular worker
+    if (isNode) {
+      // Use NodeSharedWorker polyfill
+      const sharedWorker = new NodeSharedWorker(workerPath, {});
+      sharedWorker.port.start();
+      const worker: WorkerInstance = {
+        postMessage: (data: any, transfer?: Transferable[]) => {
+          if (transfer) {
+            sharedWorker.port.postMessage(data, transfer);
+          } else {
+            sharedWorker.port.postMessage(data);
+          }
+        },
+        onmessage: null,
+        onerror: null,
+        terminate: () => {
+          // Close the port which will trigger cleanup
+          sharedWorker.port.close();
+        },
+      };
+      sharedWorker.port.on("message", (event: any) => {
+        if (worker.onmessage) {
+          worker.onmessage(new MessageEvent("message", { data: event }));
+        }
+      });
+      sharedWorker.port.on("error", (error: any) => {
+        if (worker.onerror) {
+          worker.onerror(error);
+        }
+      });
+      return worker;
+    } else {
+      // Browser SharedWorker
+      const sharedWorker = new SharedWorker(workerPath, {
+        type: "module",
+        name: `threadly-shared-worker-${Date.now()}`,
+      });
+      sharedWorker.port.start();
+      const worker: WorkerInstance = {
+        postMessage: (data: any, transfer?: Transferable[]) => {
+          if (transfer) {
+            sharedWorker.port.postMessage(data, transfer);
+          } else {
+            sharedWorker.port.postMessage(data);
+          }
+        },
+        onmessage: null,
+        onerror: null,
+        terminate: () => {
+          sharedWorker.port.close();
+        },
+      };
+      sharedWorker.port.onmessage = (event: MessageEvent) => {
+        if (worker.onmessage) {
+          worker.onmessage(event);
+        }
+      };
+      return worker;
     }
-
-    return worker;
   }
 
   /**
@@ -140,8 +308,9 @@ export class ThreadlyRuntime {
     return new Promise((resolve, reject) => {
       const originalOnMessage = worker.onmessage;
 
-      worker.onmessage = (event: any) => {
+      worker.onmessage = (event: MessageEvent) => {
         worker.onmessage = originalOnMessage;
+
         if (event.data.error) {
           reject(new Error(event.data.error));
         } else {
@@ -155,6 +324,24 @@ export class ThreadlyRuntime {
         args,
       });
     });
+  }
+
+  /**
+   * Creates a shared memory buffer and passes it to workers
+   */
+  createSharedBuffer(size: number): SharedArrayBuffer {
+    return new SharedArrayBuffer(size);
+  }
+
+  /**
+   * Transfers data to a worker using transferable objects
+   */
+  transferToWorker<T>(
+    worker: WorkerInstance,
+    data: T,
+    transferables: Transferable[]
+  ): void {
+    worker.postMessage(data, transferables);
   }
 
   /**
@@ -188,6 +375,9 @@ export class ThreadlyRuntime {
     }
 
     this.context.workers.clear();
+
+    // Clean up shared workers
+    cleanupSharedWorkers();
   }
 
   /**
@@ -195,5 +385,26 @@ export class ThreadlyRuntime {
    */
   getContext(): ThreadlyContext {
     return this.context;
+  }
+
+  /**
+   * Registers a worker in the context
+   */
+  registerWorker(id: string, worker: WorkerInstance | WorkerPool): void {
+    this.context.workers.set(id, worker);
+  }
+
+  /**
+   * Unregisters a worker from the context
+   */
+  unregisterWorker(id: string): void {
+    this.context.workers.delete(id);
+  }
+
+  /**
+   * Gets a worker by ID from the context
+   */
+  getWorker(id: string): WorkerInstance | WorkerPool | undefined {
+    return this.context.workers.get(id);
   }
 }

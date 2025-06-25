@@ -1,5 +1,10 @@
-// Generic worker instance type
-export type WorkerInstance = any;
+// Web Worker types
+export interface WorkerInstance {
+  postMessage: (data: any, transfer?: Transferable[]) => void;
+  onmessage: ((event: MessageEvent) => void) | null;
+  onerror: ((error: ErrorEvent) => void) | null;
+  terminate: () => void;
+}
 
 export interface ThreadlyAnnotation {
   type: "basic" | "pool" | "shared";
