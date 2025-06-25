@@ -1,10 +1,14 @@
 # Threadly
 
+**This work is not yet released.**
+
 A TypeScript transformer that allows you to inline threaded functions with annotations for worker extraction, pools, and shared memory. 
 
-**Why?** I wanted a threading system that resembles go/java a bit more. I've felt that creating
-a separate worker file always causes indirection. Having all my code colocated and able to spin
-off with workers with a simple annotation will allow me to create threads more often.
+**Why?** I wanted a threading system that resembles other languages a bit more. I've felt that creating
+a separate worker file causes significant indirection and requires a fair amount of planning and tinkering
+with build systems. I knew how to build this, I knew the API I wanted but I honestly did not want to trudge
+through it all before. With Cursor, Claude another other LLMs I decided to vibe my way to success a bit here
+and see if other people like the ergonomics here too before proceeding.
 
 ## Features
 
