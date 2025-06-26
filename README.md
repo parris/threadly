@@ -20,9 +20,7 @@ and see if other people like the ergonomics here too before proceeding.
 
 ## Installation
 
-```bash
-npm install threadly
-```
+NOT POSSIBLE YET, check out examples first. 
 
 ## Quick Start
 
