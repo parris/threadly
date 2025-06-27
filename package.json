@@ -1,6 +1,6 @@
 {
   "name": "@deca-inc/threadly",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Inline workers/threads right in the middle of your code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
