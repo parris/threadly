@@ -1,12 +1,17 @@
 {
   "name": "@deca-inc/threadly",
   "version": "0.0.1",
-  "description": "Inline workers and threads",
+  "description": "Inline workers/threads right in the middle of your code",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "threadly": "dist/cli.js"
   },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "test": "jest",
@@ -22,10 +27,30 @@
     "workers",
     "typescript",
     "transformer",
-    "inline"
+    "inline",
+    "web-workers",
+    "worker-threads",
+    "parallel",
+    "concurrent",
+    "shared-memory",
+    "sharedarraybuffer"
   ],
-  "author": "",
+  "author": "Deca Inc",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deca-inc/threadly.git"
+  },
+  "bugs": {
+    "url": "https://github.com/deca-inc/threadly/issues"
+  },
+  "homepage": "https://github.com/deca-inc/threadly#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "dependencies": {
     "comlink": "^4.4.1",
     "commander": "^11.1.0",
