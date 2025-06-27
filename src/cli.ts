@@ -136,7 +136,7 @@ program
           },
           plugins: [
             {
-              transform: "threadly/transformer-plugin",
+              transform: "@deca-inc/threadly/transformer-plugin",
               options: {
                 outputDir: "./dist/workers",
                 baseDir: "./src",
@@ -156,7 +156,7 @@ module.exports = {
         test: /\\.ts$/,
         use: [
           {
-            loader: 'threadly/webpack-loader',
+            loader: '@deca-inc/threadly/webpack-loader',
             options: {
               outputDir: './dist/workers',
               emitWorkerFiles: true
@@ -179,7 +179,7 @@ module.exports = {
       },
       vite: {
         "vite.config.ts": `import { defineConfig } from 'vite';
-import { threadly } from 'threadly/vite-plugin';
+import { threadly } from '@deca-inc/threadly/vite-plugin';
 
 export default defineConfig({
   plugins: [

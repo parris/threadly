@@ -20,7 +20,7 @@
   ],
   "plugins": [
     {
-      "transform": "threadly/transformer-plugin",
+      "transform": "@deca-inc/threadly/transformer-plugin",
       "options": {
         "outputDir": "./dist/workers",
         "baseDir": ".",

@@ -66,3 +66,6 @@ export function transformWithThreadly(
 
   return transformer.transform(sourceFile);
 }
+
+// Default export for TypeScript transformer plugin compatibility
+export default threadlyTransformer;

@@ -1,7 +1,5 @@
 # Threadly
 
-**This work is not yet released.**
-
 A TypeScript transformer that allows you to inline threaded functions with annotations for worker extraction, pools, and shared memory. 
 
 **Why?** I wanted a threading system that resembles other languages a bit more. I've felt that creating
@@ -20,7 +18,9 @@ and see if other people like the ergonomics here too before proceeding.
 
 ## Installation
 
-NOT POSSIBLE YET, check out examples first. 
+```
+npm install @deca-inc/threadly
+```
 
 ## Quick Start
 
@@ -65,7 +65,7 @@ Add to your `tsconfig.json`:
   },
   "plugins": [
     {
-      "transform": "threadly/transformer-plugin",
+      "transform": "@deca-inc/threadly/transformer-plugin",
       "options": {
         "outputDir": "./dist/workers",
         "baseDir": "./src"
@@ -73,6 +73,22 @@ Add to your `tsconfig.json`:
     }
   ]
 }
+```
+
+**Note**: The transformer plugin exports a default function that can be used directly in `tsconfig.json`. This allows TypeScript to properly load and execute the transformer during compilation.
+
+You can also use the transformer programmatically:
+
+```typescript
+import { threadlyTransformer } from '@deca-inc/threadly/transformer-plugin';
+
+const transformer = threadlyTransformer({
+  outputDir: './dist/workers',
+  baseDir: './src',
+  target: 'es2020',
+  module: 'commonjs',
+  sourceMap: false
+});
 ```
 
 #### Webpack Loader
@@ -87,7 +103,7 @@ module.exports = {
         test: /\.ts$/,
         use: [
           {
-            loader: 'threadly/webpack-loader',
+            loader: '@deca-inc/threadly/webpack-loader',
             options: {
               outputDir: './dist/workers',
               emitWorkerFiles: true
@@ -107,7 +123,7 @@ Add to your `vite.config.ts`:
 
 ```typescript
 import { defineConfig } from 'vite';
-import { threadly } from 'threadly/vite-plugin';
+import { threadly } from '@deca-inc/threadly/vite-plugin';
 
 export default defineConfig({
   plugins: [
@@ -125,12 +141,12 @@ For manual transformations:
 
 ```bash
 # Transform specific files
-npx threadly transform "src/**/*.ts"
+npx @deca-inc/threadly transform "src/**/*.ts"
 
 # Initialize project configuration
-npx threadly init --type typescript
-npx threadly init --type webpack
-npx threadly init --type vite
+npx @deca-inc/threadly init --type typescript
+npx @deca-inc/threadly init --type webpack
+npx @deca-inc/threadly init --type vite
 ```
 
 ## Annotation Types
@@ -218,7 +234,7 @@ async function batchCalculations(expressions: string[]): Promise<number[]> {
 ### Programmatic Usage
 
 ```typescript
-import { createThreadly } from 'threadly';
+import { createThreadly } from '@deca-inc/threadly';
 
 const threadly = createThreadly({
   outputDir: './dist/workers',
@@ -244,6 +260,38 @@ const pool = await threadly.createWorkerPool('myFunction', 4);
 | `target` | string | `es2020` | TypeScript target version |
 | `module` | string | `commonjs` | Module system |
 | `sourceMap` | boolean | `false` | Generate source maps |
+
+## Troubleshooting
+
+### Transformer Plugin Issues
+
+If the TypeScript transformer plugin doesn't work in your `tsconfig.json`, try these solutions:
+
+1. **Ensure default export is available**: The transformer plugin now exports a default function that TypeScript can load directly.
+
+2. **Check TypeScript version**: Make sure you're using TypeScript 4.1+ which supports transformer plugins.
+
+3. **Verify plugin path**: Ensure the path `@deca-inc/threadly/transformer-plugin` resolves correctly in your project.
+
+4. **Alternative usage**: If the plugin still doesn't work, you can use it programmatically:
+
+```typescript
+import { threadlyTransformer } from '@deca-inc/threadly/transformer-plugin';
+
+// Use in your build script
+const transformer = threadlyTransformer({
+  outputDir: './dist/workers',
+  baseDir: './src'
+});
+```
+
+5. **Check for conflicts**: Ensure no other transformers are conflicting with Threadly.
+
+### Common Error Messages
+
+- **"Cannot find module '@deca-inc/threadly/transformer-plugin'"**: Make sure Threadly is installed and the path is correct.
+- **"Transformer plugin must export a default function"**: This should be resolved with the latest version that includes the default export.
+- **"No workers generated"**: Check that your functions have the correct `@threadly` annotations.
 
 ## Development
 
