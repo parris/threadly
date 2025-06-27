@@ -1,5 +1,5 @@
 {
-  "name": "threadly",
+  "name": "@deca-inc/threadly",
   "version": "0.0.1",
   "description": "Inline workers and threads",
   "main": "dist/index.js",
@@ -13,7 +13,9 @@
     "test:watch": "jest --watch",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "prepublishOnly": "npm run clean && npm run build",
+    "run-example": "ts-node --inspect examples/${npm_config_file:-basic-example.ts}",
+    "run-example:break": "ts-node --inspect-brk examples/${npm_config_file:-basic-example.ts}"
   },
   "keywords": [
     "threads",

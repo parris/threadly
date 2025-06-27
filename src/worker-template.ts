@@ -10,6 +10,8 @@ import { expose } from "comlink";
 interface WorkerContext {
   id: string;
   functionName: string;
+  processId?: number;
+  threadId?: number;
 }
 
 // Global worker context
@@ -19,26 +21,78 @@ const workerContext: WorkerContext = {
 };
 
 /**
+ * Gets process and thread information
+ */
+function getThreadInfo(): { processId: number; threadId?: number } {
+  const processId = typeof process !== "undefined" ? process.pid : 0;
+  let threadId: number | undefined;
+
+  // Try to get thread ID (Node.js only)
+  if (typeof process !== "undefined" && process.versions?.node) {
+    try {
+      const { threadId: nodeThreadId } = require("worker_threads");
+      threadId = nodeThreadId;
+    } catch (e) {
+      // Browser environment or threadId not available
+    }
+  }
+
+  return { processId, threadId };
+}
+
+/**
  * Sets up the worker context
  */
 function setupWorkerContext(id: string, functionName: string): void {
+  const threadInfo = getThreadInfo();
   workerContext.id = id;
   workerContext.functionName = functionName;
+  workerContext.processId = threadInfo.processId;
+  workerContext.threadId = threadInfo.threadId;
+
+  // Log worker startup with thread info
+  console.log(
+    `[Worker ${id}] Started - PID: ${threadInfo.processId}${
+      threadInfo.threadId ? `, Thread ID: ${threadInfo.threadId}` : ""
+    }`
+  );
 }
 
 /**
  * Handles worker errors
  */
 function handleWorkerError(error: Error): void {
-  console.error(`[Worker ${workerContext.id}] Error:`, error);
+  const threadInfo = getThreadInfo();
+  console.error(
+    `[Worker ${workerContext.id}] Error (PID: ${threadInfo.processId}${
+      threadInfo.threadId ? `, Thread: ${threadInfo.threadId}` : ""
+    }):`,
+    error
+  );
   // Send error back to main thread
   if (typeof self !== "undefined" && "postMessage" in self) {
     (self as any).postMessage({
       type: "error",
       error: error.message,
       workerId: workerContext.id,
+      processId: threadInfo.processId,
+      threadId: threadInfo.threadId,
     });
   }
+}
+
+/**
+ * Logs worker activity with thread information
+ */
+function logWorkerActivity(action: string, data?: any): void {
+  const threadInfo = getThreadInfo();
+  const timestamp = new Date().toISOString();
+  console.log(
+    `[${timestamp}] [Worker ${workerContext.id}] (PID: ${threadInfo.processId}${
+      threadInfo.threadId ? `, Thread: ${threadInfo.threadId}` : ""
+    }) ${action}`,
+    data || ""
+  );
 }
 
 /**
@@ -61,26 +115,37 @@ function handleMessage(event: MessageEvent): void {
         typeof functionName === "string" &&
         typeof globalScope[functionName] === "function"
       ) {
+        const threadInfo = getThreadInfo();
+        logWorkerActivity(`Executing function: ${functionName}`, { args });
+
         const result = globalScope[functionName](...args);
 
         // Handle async functions
         if (result instanceof Promise) {
           result
             .then((resolvedResult) => {
+              logWorkerActivity(`Function completed: ${functionName}`, {
+                result: resolvedResult,
+              });
               (self as any).postMessage({
                 type: "result",
                 result: resolvedResult,
                 workerId: workerContext.id,
+                processId: threadInfo.processId,
+                threadId: threadInfo.threadId,
               });
             })
             .catch((error) => {
               handleWorkerError(error);
             });
         } else {
+          logWorkerActivity(`Function completed: ${functionName}`, { result });
           (self as any).postMessage({
             type: "result",
             result,
             workerId: workerContext.id,
+            processId: threadInfo.processId,
+            threadId: threadInfo.threadId,
           });
         }
       } else {
@@ -124,4 +189,10 @@ function exposeFunction<TArgs extends any[], TReturn>(
 }
 
 // Export the template utilities
-export { exposeFunction, setupWorkerContext, handleWorkerError };
+export {
+  exposeFunction,
+  setupWorkerContext,
+  handleWorkerError,
+  getThreadInfo,
+  logWorkerActivity,
+};

@@ -1,8 +1,8 @@
 // Web Worker types
 export interface WorkerInstance {
-  postMessage: (data: any, transfer?: Transferable[]) => void;
+  postMessage: (data: any, transfer?: any[]) => void;
   onmessage: ((event: MessageEvent) => void) | null;
-  onerror: ((error: ErrorEvent) => void) | null;
+  onerror: ((error: any) => void) | null;
   terminate: () => void;
 }
 

@@ -96,13 +96,13 @@ export class ThreadlyRuntime {
         eval: false,
       });
       // Polyfill browser-like API
-      const messageListeners: Array<(event: MessageEvent) => void> = [];
-      const errorListeners: Array<(event: ErrorEvent) => void> = [];
+      const messageListeners: Array<(event: any) => void> = [];
+      const errorListeners: Array<(event: any) => void> = [];
       worker.on("message", (data: any) => {
-        messageListeners.forEach((fn) => fn({ data } as MessageEvent));
+        messageListeners.forEach((fn) => fn({ data } as any));
       });
       worker.on("error", (err: any) => {
-        errorListeners.forEach((fn) => fn(err as ErrorEvent));
+        errorListeners.forEach((fn) => fn(err as any));
       });
       return {
         postMessage: (data: any) => worker.postMessage(data),
@@ -119,26 +119,26 @@ export class ThreadlyRuntime {
         get onmessage() {
           return messageListeners[0] || null;
         },
-        set onmessage(fn: ((event: MessageEvent) => void) | null) {
+        set onmessage(fn: ((event: any) => void) | null) {
           messageListeners.length = 0;
           if (fn) messageListeners.push(fn);
         },
         get onerror() {
           return errorListeners[0] || null;
         },
-        set onerror(fn: ((event: ErrorEvent) => void) | null) {
+        set onerror(fn: ((event: any) => void) | null) {
           errorListeners.length = 0;
           if (fn) errorListeners.push(fn);
         },
       };
     } else {
       // Browser Worker
-      worker = new Worker(workerPath, {
+      worker = new (globalThis as any).Worker(workerPath, {
         type: "module",
         name: `threadly-worker-${Date.now()}`,
       });
       const workerInstance: WorkerInstance = {
-        postMessage: (data: any, transfer?: Transferable[]) => {
+        postMessage: (data: any, transfer?: any[]) => {
           if (transfer) {
             worker.postMessage(data, transfer);
           } else {
@@ -151,12 +151,12 @@ export class ThreadlyRuntime {
           worker.terminate();
         },
       };
-      worker.onmessage = (event: MessageEvent) => {
+      worker.onmessage = (event: any) => {
         if (workerInstance.onmessage) {
           workerInstance.onmessage(event);
         }
       };
-      worker.onerror = (error: ErrorEvent) => {
+      worker.onerror = (error: any) => {
         if (workerInstance.onerror) {
           workerInstance.onerror(error);
         }
@@ -242,7 +242,7 @@ export class ThreadlyRuntime {
       const sharedWorker = new NodeSharedWorker(workerPath, {});
       sharedWorker.port.start();
       const worker: WorkerInstance = {
-        postMessage: (data: any, transfer?: Transferable[]) => {
+        postMessage: (data: any, transfer?: any[]) => {
           if (transfer) {
             sharedWorker.port.postMessage(data, transfer);
           } else {
@@ -269,13 +269,13 @@ export class ThreadlyRuntime {
       return worker;
     } else {
       // Browser SharedWorker
-      const sharedWorker = new SharedWorker(workerPath, {
+      const sharedWorker = new (globalThis as any).SharedWorker(workerPath, {
         type: "module",
         name: `threadly-shared-worker-${Date.now()}`,
       });
       sharedWorker.port.start();
       const worker: WorkerInstance = {
-        postMessage: (data: any, transfer?: Transferable[]) => {
+        postMessage: (data: any, transfer?: any[]) => {
           if (transfer) {
             sharedWorker.port.postMessage(data, transfer);
           } else {
@@ -288,7 +288,7 @@ export class ThreadlyRuntime {
           sharedWorker.port.close();
         },
       };
-      sharedWorker.port.onmessage = (event: MessageEvent) => {
+      sharedWorker.port.onmessage = (event: any) => {
         if (worker.onmessage) {
           worker.onmessage(event);
         }
@@ -314,6 +314,14 @@ export class ThreadlyRuntime {
         if (event.data.error) {
           reject(new Error(event.data.error));
         } else {
+          // Log thread information if available
+          if (event.data.processId || event.data.threadId) {
+            console.log(
+              `[Runtime] Worker execution completed - PID: ${
+                event.data.processId || "N/A"
+              }, Thread: ${event.data.threadId || "N/A"}`
+            );
+          }
           resolve(event.data.result);
         }
       };
@@ -339,7 +347,7 @@ export class ThreadlyRuntime {
   transferToWorker<T>(
     worker: WorkerInstance,
     data: T,
-    transferables: Transferable[]
+    transferables: any[]
   ): void {
     worker.postMessage(data, transferables);
   }

@@ -261,6 +261,66 @@ npm test
 npm run dev
 ```
 
+## Debugging
+
+Threadly includes convenient debugging scripts and VS Code configurations to help you debug your threaded code.
+
+### Command Line Debugging
+
+Use the provided npm scripts to run examples with debugging enabled:
+
+```bash
+# Debug the basic example
+npm run run-example
+
+# Debug a specific example
+npm run run-example --file=thread-verification-example.ts
+
+# Debug with break on first line
+npm run run-example:break --file=websocket-chat-server.ts
+```
+
+### VS Code Debugging
+
+The project includes pre-configured VS Code debug configurations:
+
+1. **Open the Debug panel** (Ctrl+Shift+D / Cmd+Shift+D)
+2. **Select "Debug Example"** from the dropdown
+3. **Choose your example file** from the picker
+4. **Set breakpoints** in your TypeScript files
+5. **Press F5** to start debugging
+
+#### Available Debug Configurations
+
+- **"Debug Example"** - Launch any example with full debugging support
+- **"Attach to Process"** - Attach to a running process on port 9229
+
+#### Available Examples
+
+- `basic-example.ts` - Basic threading examples
+- `thread-verification-example.ts` - Thread execution verification
+- `worker-with-imports.ts` - Workers with external libraries
+- `websocket-chat-server.ts` - Real-time WebSocket server
+- `plugin-test.ts` - Transformer plugin testing
+- `import-removal-test.ts` - Import handling tests
+
+### Manual Debugging
+
+For manual debugging without the scripts:
+
+```bash
+# Start with debugging enabled
+npx ts-node --inspect examples/basic-example.ts
+
+# Start with break on first line
+npx ts-node --inspect-brk examples/basic-example.ts
+
+# Use custom port
+npx ts-node --inspect=9230 examples/basic-example.ts
+```
+
+Then attach using VS Code's "Attach to Process" configuration.
+
 ## Contributing
 
 1. Fork the repository

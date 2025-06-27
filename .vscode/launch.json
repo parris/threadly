@@ -1,0 +1,60 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach to Process",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "restart": true,
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "${workspaceFolder}",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    },
+    {
+      "name": "Debug Example",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/.bin/ts-node",
+      "args": [
+        "${workspaceFolder}/examples/${input:exampleFile}"
+      ],
+      "cwd": "${workspaceFolder}",
+      "protocol": "inspector",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/examples/tsconfig.json"
+      },
+      "sourceMaps": true,
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "exampleFile",
+      "type": "pickString",
+      "description": "Select example file to debug",
+      "options": [
+        "basic-example.ts",
+        "thread-verification-example.ts",
+        "worker-with-imports.ts",
+        "websocket-chat-server.ts",
+        "plugin-test.ts",
+        "import-removal-test.ts"
+      ],
+      "default": "basic-example.ts"
+    }
+  ]
+}
