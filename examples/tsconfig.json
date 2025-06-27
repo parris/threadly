@@ -5,11 +5,27 @@
     "lib": [
       "es2020"
     ],
+    "outDir": "./dist",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "./dist"
+    "declaration": true,
+    "sourceMap": true,
+    "moduleResolution": "node",
+    "plugins": [
+      {
+        "transform": "../dist/transformer-plugin",
+        "options": {
+          "outputDir": "./dist/workers",
+          "baseDir": ".",
+          "target": "es2020",
+          "module": "commonjs",
+          "sourceMap": true
+        }
+      }
+    ]
   },
   "include": [
     "*.ts"
@@ -17,17 +33,5 @@
   "exclude": [
     "node_modules",
     "dist"
-  ],
-  "plugins": [
-    {
-      "transform": "@deca-inc/threadly/transformer-plugin",
-      "options": {
-        "outputDir": "./dist/workers",
-        "baseDir": ".",
-        "target": "es2020",
-        "module": "commonjs",
-        "sourceMap": false
-      }
-    }
   ]
 }

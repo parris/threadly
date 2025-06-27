@@ -18,9 +18,11 @@ and see if other people like the ergonomics here too before proceeding.
 
 ## Installation
 
+```bash
+npm install @deca-inc/threadly ts-patch
 ```
-npm install @deca-inc/threadly
-```
+
+**Note**: The TypeScript transformer plugin requires `ts-patch` (TypeScript with transformer support) to work properly. Regular TypeScript does not support transformer plugins.
 
 ## Quick Start
 
@@ -55,24 +57,35 @@ Choose your preferred build tool:
 
 #### TypeScript Transformer Plugin
 
+**Prerequisite**: Install `ts-patch` for transformer support:
+```bash
+npm install ts-patch
+```
+
 Add to your `tsconfig.json`:
 
 ```json
 {
   "compilerOptions": {
     "target": "es2020",
-    "module": "commonjs"
-  },
-  "plugins": [
-    {
-      "transform": "@deca-inc/threadly/transformer-plugin",
-      "options": {
-        "outputDir": "./dist/workers",
-        "baseDir": "./src"
+    "module": "commonjs",
+    "plugins": [
+      {
+        "transform": "@deca-inc/threadly/transformer-plugin",
+        "options": {
+          "outputDir": "./dist/workers",
+          "baseDir": "./src"
+        }
       }
-    }
-  ]
+    ]
+  }
 }
+```
+
+**Important**: This use ts-patch plugins, which are nested under compiler options. These are separate from typescript plugins which sit at the root of tsconfig. You can still use `tsc` to compile with transformer support (ts-patch patches TypeScript automatically):
+```bash
+# ts-patch automatically patches TypeScript, so you can use tsc normally
+tsc
 ```
 
 **Note**: The transformer plugin exports a default function that can be used directly in `tsconfig.json`. This allows TypeScript to properly load and execute the transformer during compilation.
@@ -148,6 +161,29 @@ npx @deca-inc/threadly init --type typescript
 npx @deca-inc/threadly init --type webpack
 npx @deca-inc/threadly init --type vite
 ```
+
+### 4. Using ts-patch
+
+When using the TypeScript transformer plugin, you need to use `ts-patch` to enable transformer support:
+
+```bash
+# Install ts-patch
+npm install ts-patch
+
+# ts-patch automatically patches TypeScript during postinstall
+# You can now use tsc normally
+tsc
+
+# Or add to your package.json scripts
+{
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  }
+}
+```
+
+**Why ts-patch?** Regular TypeScript doesn't support transformer plugins. `ts-patch` patches TypeScript to add transformer support, allowing plugins like Threadly to modify your code during compilation. It's the modern replacement for `ttypescript` and works with TypeScript 5+.
 
 ## Annotation Types
 
@@ -267,13 +303,35 @@ const pool = await threadly.createWorkerPool('myFunction', 4);
 
 If the TypeScript transformer plugin doesn't work in your `tsconfig.json`, try these solutions:
 
-1. **Ensure default export is available**: The transformer plugin now exports a default function that TypeScript can load directly.
+1. **Install ts-patch**: Make sure you have `ts-patch` installed:
+   ```bash
+   npm install ts-patch
+   ```
 
-2. **Check TypeScript version**: Make sure you're using TypeScript 4.1+ which supports transformer plugins.
+2. **Use tsc normally**: With ts-patch, you can use `tsc` normally (no need for ttsc):
+   ```bash
+   # ts-patch automatically patches TypeScript
+   tsc
+   ```
 
-3. **Verify plugin path**: Ensure the path `@deca-inc/threadly/transformer-plugin` resolves correctly in your project.
+3. **Ensure plugins are under compilerOptions**: The plugins section must be under `compilerOptions`, not at the root level:
+   ```json
+   {
+     "compilerOptions": {
+       "plugins": [
+         {
+           "transform": "@deca-inc/threadly/transformer-plugin"
+         }
+       ]
+     }
+   }
+   ```
 
-4. **Alternative usage**: If the plugin still doesn't work, you can use it programmatically:
+4. **Check TypeScript version**: Make sure you're using TypeScript 5+ which is fully supported by ts-patch.
+
+5. **Verify plugin path**: Ensure the path `@deca-inc/threadly/transformer-plugin` resolves correctly in your project.
+
+6. **Alternative usage**: If the plugin still doesn't work, you can use it programmatically:
 
 ```typescript
 import { threadlyTransformer } from '@deca-inc/threadly/transformer-plugin';
@@ -285,13 +343,14 @@ const transformer = threadlyTransformer({
 });
 ```
 
-5. **Check for conflicts**: Ensure no other transformers are conflicting with Threadly.
+7. **Check for conflicts**: Ensure no other transformers are conflicting with Threadly.
 
 ### Common Error Messages
 
 - **"Cannot find module '@deca-inc/threadly/transformer-plugin'"**: Make sure Threadly is installed and the path is correct.
 - **"Transformer plugin must export a default function"**: This should be resolved with the latest version that includes the default export.
 - **"No workers generated"**: Check that your functions have the correct `@threadly` annotations.
+- **"Transformers are not supported"**: Make sure you have `ts-patch` installed and it has patched TypeScript properly.
 
 ## Development
 
@@ -299,15 +358,17 @@ const transformer = threadlyTransformer({
 # Install dependencies
 npm install
 
-# Build the project
+# Build the project (uses ts-patch for transformer support)
 npm run build
 
 # Run tests
 npm test
 
-# Watch mode
+# Watch mode (uses ts-patch)
 npm run dev
 ```
+
+**Note**: The build process uses `ts-patch` to support the transformer plugin during compilation.
 
 ## Debugging
 

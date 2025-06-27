@@ -8,13 +8,14 @@ import {
 import * as path from "path";
 import * as fs from "fs";
 import * as glob from "glob";
+import packageJson from "../package.json";
 
 const program = new Command();
 
 program
   .name("threadly")
   .description("Transform TypeScript files with Threadly annotations")
-  .version("0.0.1");
+  .version(packageJson.version);
 
 program
   .command("transform")
@@ -133,16 +134,25 @@ program
             esModuleInterop: true,
             skipLibCheck: true,
             forceConsistentCasingInFileNames: true,
-          },
-          plugins: [
-            {
-              transform: "@deca-inc/threadly/transformer-plugin",
-              options: {
-                outputDir: "./dist/workers",
-                baseDir: "./src",
+            plugins: [
+              {
+                transform: "@deca-inc/threadly/transformer-plugin",
+                options: {
+                  outputDir: "./dist/workers",
+                  baseDir: "./src",
+                },
               },
-            },
-          ],
+            ],
+          },
+        },
+        "package.json": {
+          scripts: {
+            build: "tsc",
+            dev: "tsc --watch",
+          },
+          devDependencies: {
+            "ts-patch": "^3.0.0",
+          },
         },
       },
       webpack: {
@@ -219,6 +229,15 @@ export default defineConfig({
     console.log(
       "You can now use Threadly annotations in your TypeScript files."
     );
+
+    if (options.type === "typescript") {
+      console.log("\nNext steps:");
+      console.log("1. Run 'npm install' to install ts-patch");
+      console.log("2. Use 'npm run build' to compile with transformer support");
+      console.log(
+        "3. Note: Plugins are configured under compilerOptions in tsconfig.json"
+      );
+    }
   });
 
 program.parse();

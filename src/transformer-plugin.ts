@@ -12,8 +12,14 @@ export interface ThreadlyTransformerOptions {
 /**
  * TypeScript transformer plugin for Threadly
  * Can be used in tsconfig.json or programmatically
+ * Compatible with ts-patch for TypeScript 5+
  */
-export function threadlyTransformer(options: ThreadlyTransformerOptions = {}) {
+export function threadlyTransformer(
+  program: ts.Program,
+  pluginConfig: any,
+  extras: any
+) {
+  const options = pluginConfig || {};
   const defaultOptions = {
     outputDir: "./dist/workers",
     baseDir: "./src",
@@ -45,7 +51,7 @@ export function threadlyTransformer(options: ThreadlyTransformerOptions = {}) {
 export function createThreadlyTransformer(
   options?: ThreadlyTransformerOptions
 ) {
-  return threadlyTransformer(options);
+  return threadlyTransformer;
 }
 
 /**
@@ -68,4 +74,8 @@ export function transformWithThreadly(
 }
 
 // Default export for TypeScript transformer plugin compatibility
+// For ts-patch compatibility, we export both the function and as default
 export default threadlyTransformer;
+
+// Named export for ts-patch compatibility
+export { threadlyTransformer as transformer };

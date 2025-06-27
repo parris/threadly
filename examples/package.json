@@ -1,0 +1,21 @@
+{
+  "name": "threadly-examples",
+  "version": "1.0.0",
+  "description": "Threadly examples with ts-patch",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "run-basic": "node dist/basic-example.js",
+    "run-verification": "node dist/thread-verification-example.js",
+    "run-websocket": "node dist/websocket-chat-server.js"
+  },
+  "devDependencies": {
+    "@deca-inc/threadly": "file:..",
+    "ts-patch": "^3.0.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "mathjs": "^14.5.2",
+    "ws": "^8.18.2"
+  }
+}
