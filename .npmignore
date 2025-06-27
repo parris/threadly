@@ -1,1 +1,11 @@
 dist/examples
+__tests__
+.vscode
+.gitignore
+.DS_Store
+.idea
+.npmrc
+.node-version
+examples
+src
+tsconfig.json
